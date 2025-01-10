@@ -1,5 +1,7 @@
 const express = require("express");
-const { adminAuth } = require("./middleware/adminAuth");
+const bcrypt = require("bcrypt");
+const cookieParse = require("cookie-parser");
+
 const connectDb = require("./config/database");
 const User = require("./models/user");
 
@@ -55,19 +57,35 @@ app.use(express.json());
 
 app.post("/signUp", async (req, res) => {
   try {
-    const user = new User(req.body);
-    await user.save();
-  } catch (error) {
-    console.log("connect error while the request from api");
-  }
+    const { firstName, lastName, emailId, password } = req.body;
 
-  res.send("user saved successfully");
+    const encryptPassword = await bcrypt.hash(password, 10);
+    console.log("hello", encryptPassword);
+
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password: encryptPassword,
+    });
+
+    // if (data?.skills && data?.skills.length > 5) {
+    //   throw new Error(" Skills should have less than 5");
+    // }
+
+    await user.save();
+
+    res.send("user saved successfully");
+  } catch (error) {
+    res
+      .status(400)
+      .send("connect error while the request from api" + error.message);
+  }
 });
 
 app.get("/user", async (req, res) => {
   try {
     const email = req.body.emailId;
-    console.log(email);
     const userDetails = await User.find({ emailId: email });
     res.send(userDetails);
   } catch (error) {
@@ -92,11 +110,15 @@ app.patch("/user", async (req, res) => {
     const data = req.body;
     const id = req.body.id;
 
+    if (data?.skills && data?.skills.length > 5) {
+      throw new Error("Skills should have less than 5");
+    }
+
     await User.findByIdAndUpdate({ _id: id }, data);
 
     res.send("User update successfully");
   } catch (error) {
-    res.status(400).send("something went wrong");
+    res.status(400).send(error.message);
   }
 });
 
@@ -121,3 +143,25 @@ connectDb()
     });
   })
   .catch((error) => console.log("failed the db connection"));
+
+app.post("/login", async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const user = await User.find({ emailId });
+
+    if (user.length == 0) {
+      throw new Error("User credential failed, due to invalid user credential");
+    }
+
+    const match = await bcrypt.compare(password, user[0].password);
+
+    if (match) {
+      res.cookie("Token", "klsjdflksjdflkjslkdfjsdlkjdf");
+      res.send("User successfully logged in");
+    }
+
+    res.send("User credential failed, due to invalid user credential");
+  } catch (error) {
+    res.status(400).send("error" + error.message);
+  }
+});
