@@ -1,21 +1,22 @@
-const adminAuth = (error, req, res, next) => {
+var jwt = require("jsonwebtoken");
+const User = require("../models/user");
+
+const adminAuth = async (req, res, next) => {
   try {
-    const isAuth = "req.params.userName";
+    const { Token } = req.cookies;
+    const decoded = await jwt.verify(Token, "ramupuppala");
 
-    console.log(req.body.json());
-
-    //   res.send(bodyParser);
-
-    if (!isAuth) {
-      res
-        .status(500)
-        .send("Authroization failed due to user credentials wrong!");
+    const { emailId } = decoded;
+    // const userDetails = await User.find({ emailId });
+    const userDetails = User.getUser(emailId);
+    console.log(userDetails);
+    if (userDetails.length === 0) {
+      res.status(500).send("Invalid Cookies please try again");
     }
+    next();
   } catch (error) {
-    res.status(500).send("Something wrong ");
+    res.status(500).send("Invalid Cookies please try again");
   }
-
-  next();
 };
 
 module.exports = {

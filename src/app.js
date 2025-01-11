@@ -1,59 +1,16 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
-const cookieParse = require("cookie-parser");
+const cookieParser = require("cookie-parser");
 
 const connectDb = require("./config/database");
 const User = require("./models/user");
 
+const { adminAuth } = require("./middleware/adminAuth");
+
 const app = express();
 
-// day 1
-// --------------------------------
-// app.get("/user", (req, res) => {
-//   res.send("hello for users");
-// });
-
-// app.get("/user/:userId", (req, res) => {
-//   console.log(req.params);
-//   res.send("hello for users");
-// });
-
-// app.use("/", (req, res) => {
-//   console.log("successfully ");
-//   res.send("hello world");
-// });
-
-// ---------------------------------
-
-// day 2
-
-// app.use("/user", adminAuth, (req, res) => {
-//   res.send("user successfully logged in");
-// });
-
-// -------------------------------
-
-// day 3
-
-// app.post("/signUp", async (req, res) => {
-// const userObj = {
-//   firstName: "Jaswin",
-//   lastName: "Puppala",
-//   emailId: "jashwin@gmail.com",
-//   age: 1,
-//   password: "jashwin",
-//   gender: "male",
-// };
-
-// const user = new User(userObj);
-// await user.save();
-// res.send("user saved successfully");
-// });
-
-// ----------------------------
-// day 3
-
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signUp", async (req, res) => {
   try {
@@ -147,16 +104,17 @@ connectDb()
 app.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
-    const user = await User.find({ emailId });
+    const user = await User.findOne({ emailId });
 
-    if (user.length == 0) {
+    if (!user) {
       throw new Error("User credential failed, due to invalid user credential");
     }
 
-    const match = await bcrypt.compare(password, user[0].password);
+    const match = await user.validatePassword(password);
 
     if (match) {
-      res.cookie("Token", "klsjdflksjdflkjslkdfjsdlkjdf");
+      const token = user.getJWT();
+      res.cookie("Token", token);
       res.send("User successfully logged in");
     }
 
@@ -164,4 +122,16 @@ app.post("/login", async (req, res) => {
   } catch (error) {
     res.status(400).send("error" + error.message);
   }
+});
+
+app.get("/profile", adminAuth, async (req, res) => {
+  try {
+    const userDetails = await User.find({});
+
+    res.send(userDetails);
+  } catch (error) {
+    res.status(400).send("something went wrong " + error.message);
+  }
+
+  // res.send("user saved successfully");
 });
