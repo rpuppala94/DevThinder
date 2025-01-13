@@ -37,6 +37,9 @@ const userSchema = mongoose.Schema(
     skills: {
       type: [String],
     },
+    photoUrl: {
+      type: String,
+    },
   },
   { timestamps: true }
 );
@@ -44,7 +47,7 @@ const userSchema = mongoose.Schema(
 userSchema.methods.getUser = async function (emailId) {
   const user = this;
 
-  const userDetails = await user.find({ emailId });
+  const userDetails = await user.findOne({ emailId });
 
   return userDetails;
 };
@@ -52,7 +55,7 @@ userSchema.methods.getUser = async function (emailId) {
 userSchema.methods.getJWT = async function () {
   const user = this;
 
-  const token = await jwt.sign({ emailId: user[0].emailId }, "ramupuppala", {
+  const token = await jwt.sign({ emailId: user.emailId }, "ramupuppala", {
     expiresIn: "7d",
   });
 

@@ -7,15 +7,16 @@ const adminAuth = async (req, res, next) => {
     const decoded = await jwt.verify(Token, "ramupuppala");
 
     const { emailId } = decoded;
-    // const userDetails = await User.find({ emailId });
-    const userDetails = User.getUser(emailId);
-    console.log(userDetails);
-    if (userDetails.length === 0) {
+    const userDetails = await User.findOne({ emailId });
+
+    if (!userDetails) {
       res.status(500).send("Invalid Cookies please try again");
     }
+
+    req.user = userDetails;
     next();
   } catch (error) {
-    res.status(500).send("Invalid Cookies please try again");
+    res.status(500).send("Invalid Cookies please try again" + error.message);
   }
 };
 
